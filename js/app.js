@@ -1,10 +1,8 @@
 // SIMIT MVP — logika antarmuka (dipakai bersama index.html, lapangan.html, faktork.html)
 import { muat, tambahPembacaan, setStatus } from "./store.js";
-import { hitungFaktorK, debitDariMukaAir, validasiPembacaan, jadwalGilir } from "./engine.js";
+import { hitungFaktorK, kategoriK, debitDariMukaAir, validasiPembacaan, jadwalGilir } from "./engine.js";
 
 export const fmt = (d) => new Date(d).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" });
-
-let _diTerpilih = null; // untuk qs di dashboard saat refresh
 
 // ===== Dashboard =====
 export function renderDashboard(el) {
@@ -36,6 +34,7 @@ export function renderDashboard(el) {
 }
 
 function qsTersediaUntukDI(db, di) {
+  // Q_s dari pembacaan 08-O terbaru yang sudah terverifikasi di bangunan jenis bendung
   const intake = di.bangunan.filter((b) => b.jenis === "bendung").map((b) => b.id);
   const terverifikasi = db.pembacaan
     .filter((p) => intake.includes(p.id_bangunan) && p.kode_blangko === "08-O" && p.status === "terverifikasi" && p.debit_lps != null)
@@ -44,6 +43,7 @@ function qsTersediaUntukDI(db, di) {
     .filter((p) => intake.includes(p.id_bangunan) && p.kode_blangko === "08-O" && p.debit_lps != null)
     .sort((a, b) => b.waktu.localeCompare(a.waktu))[0];
   if (!terbaru) {
+    // fallback: kapasitas intake dalam l/dt (m3/s × 1000)
     const b = di.bangunan.find((x) => x.jenis === "bendung");
     return b ? (b.kapasitas_m3s * 1000) : null;
   }
@@ -60,7 +60,7 @@ export function renderAntrean() {
       <td><b>${p.kode_blangko}</b></td>
       <td>${bn ? bn.nama : p.id_bangunan}</td>
       <td class="muted">${fmt(p.waktu)}</td>
-      <td>${p.debit_lps ?? (p.muka_air_cm != null ? `${p.muka_air_cm} cm → ${debitDariMukaAir(p.muka_air_cm)} l/dt' : "—")}${p.hujan_mm != null ? `${p.hujan_mm} mm` : ""}</td>
+      <td>${p.debit_lps ?? (p.muka_air_cm != null ? `${p.muka_air_cm} cm → ${debitDariMukaAir(p.muka_air_cm)} l/dt` : "—")}${p.hujan_mm != null ? `${p.hujan_mm} mm` : ""}</td>
       <td><span class="badge" style="background:${st}">${p.status}</span></td>
       <td>
         ${p.status === "draf" ? `<button data-aksi="kirim" data-id="${p.id}">Kirim</button>` : ""}
@@ -140,8 +140,10 @@ function pasangFormLapangan() {
     if (!v.ok) { pesan.textContent = "Ditolak: " + v.galat.join("; "); return; }
     const r = tambahPembacaan({ kode_blangko: kode, id_bangunan, waktu, muka_air_cm: muka, debit_lps: debit, hujan_mm: hujan, pengisi: "juru", catatan });
     if (!r.ok) { pesan.textContent = r.alasan; return; }
-    setStatus(r.item.id, "terkirim", "lapangan");
-    pesan.textContent = `Tersimpan (${r.item.id}) — status terkirim.`;
+    // Paritas klien lapangan (B.3): simpan sebagai draf — kirim/verifikasi lewat antrean di Dashboard.
+    pesan.textContent = `Tersimpan (${r.item.id}) — status draf; kirim dari Dashboard.`;
+    frm.querySelectorAll("input").forEach((i) => (i.value = i.name === "waktu" ? i.value : ""));
+    document.getElementById("slot").innerHTML = renderLapangan(document.getElementById("slot"));
     location.reload();
   });
 }
@@ -152,7 +154,7 @@ export function renderFaktorK(el, diId) {
   const di = db.di.find((d) => d.id === diId) || db.di[0];
   const qs = qsTersediaUntukDI(db, di);
   let hasil;
-  try { hasil = hitungFaktorK({ qs_lps: qs, petak: di.petak }); } catch (e) { el.innerHTML = `<p class="error">${e.message}</p>`; return; }
+  try { hasil = hitungFaktorK({ qs_lps: qs, petak: di.petak }); } catch (e) { hasil = null; el.innerHTML = `<p class="error">${e.message}</p>`; return; }
   const gilir = jadwalGilir({ qs_lps: hasil.qs_lps, golongan: hasil.detail_kebutuhan });
   el.innerHTML = `
   <h2>${di.nama}</h2>
