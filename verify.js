@@ -60,6 +60,19 @@ uji("Jadwal gilir menghormati kapasitas harian", () => {
   }
 });
 
+// 6b. Rolover: kebutuhan golongan yang melebihi kapasitas hari-1 harus dijadwalkan ke hari-2
+uji("Jadwal gilir meneruskan kekurangan golongan ke hari berikutnya", () => {
+  const g = jadwalGilir({ qs_lps: 600, golongan: [
+    { nama: "A", kebutuhan_lps: 300 }, { nama: "B", kebutuhan_lps: 320 },
+  ]});
+  const total = {};
+  for (const [, daftar] of Object.entries(g.hari)) {
+    for (const a of daftar) total[a.golongan] = (total[a.golongan] || 0) + a.alokasi_lps;
+  }
+  assert.ok(Math.abs((total["B"] || 0) - 320) < 0.01, `golongan B hanya ${(total["B"] || 0)} dari 320 l/dt`);
+  assert.ok(Math.abs((total["A"] || 0) - 300) < 0.01, `golongan A hanya ${(total["A"] || 0)} dari 300 l/dt`);
+});
+
 // 7. Store: tambah + idempotensi + transisi status
 uji("Store: tambah pembacaan unik & workflow status", () => {
   const db1 = muat();
@@ -78,7 +91,7 @@ uji("Store: tambah pembacaan unik & workflow status", () => {
 });
 
 // 8. Konsistensi seed: terverifikasi di intake menghasilkan K
-uji("D.I. seed menghasilkan nilai K berarti", () => {
+uji(  "D.I. seed menghasilkan nilai K berarti", () => {
   for (const di of DI) {
     const h = hitungFaktorK({ qs_lps: di.bangunan[0].kapasitas_m3s * 1000, petak: di.petak });
     assert.ok(h.nilai_k > 0 && h.nilai_k < 100);
