@@ -39,7 +39,7 @@ private val green = Color(0xFF16A34A)
 private val abu = Color(0xFF6B7280)
 private val kertas = Color(0xFFF9FAFB)
 
-androidx.compose.runtime.Composable
+@androidx.compose.runtime.Composable
 fun FieldApp(vm: FieldViewModel) {
   var tab by remember { mutableIntStateOf(0) }
   MaterialTheme {
@@ -67,7 +67,7 @@ fun FieldApp(vm: FieldViewModel) {
   }
 }
 
-androidx.compose.runtime.Composable
+@androidx.compose.runtime.Composable
 private fun FormLapangan(vm: FieldViewModel) {
   val daftar by vm.daftarDi.collectAsState()
   var kode by remember { mutableStateOf("08-O") }
@@ -120,7 +120,7 @@ private fun FormLapangan(vm: FieldViewModel) {
     OutlinedTextField(
       value = bangunanId,
       onValueChange = { bangunanId = it },
-      label = { Text("ID bangunan — BND-001 dst. (pintu/bendum di tugas) ") },
+      label = { Text("ID bangunan — BND-001 dst. (pintu/bendung di tugas) ") },
       modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
@@ -182,7 +182,7 @@ private fun FormLapangan(vm: FieldViewModel) {
   }
 }
 
-androidx.compose.runtime.Composable
+@androidx.compose.runtime.Composable
 private fun Dashboard(vm: FieldViewModel) {
   val di by vm.daftarDi.collectAsState()
   val hasil by vm.hasilK.collectAsState()
