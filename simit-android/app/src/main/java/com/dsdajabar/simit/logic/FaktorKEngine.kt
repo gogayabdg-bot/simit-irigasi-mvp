@@ -11,7 +11,7 @@ import kotlin.math.roundToInt
  * web dan Android menjalankan aturan yang sama (Lampiran B.3 butir 3).
  *
  * Semua parameter disebut "berversi" — saat integrasi server, nilai ini diunduh
- * dari endpoint parameter (Bab C.1), bukan terkunci di kode.
+ * dari endpoint parameter (Bab C.1), bukan tetap di kode.
  */
 object FaktorKEngine {
 
@@ -98,11 +98,11 @@ object FaktorKEngine {
     return HasilK(round2(qsLps), qh, qTersedia, total, detail, k, kategoriK(k, p), p.versi)
   }
 
-  /** Lengkung debit sederhana per bangunan: Q = C × (H − H0)^n — l/dt */
+  /** Lengkung debit sederhana per bangunan: Q = C × (H − H0)^n — l/dt (identik Bab C.1 versi) */
   fun debitDariMukaAir(mukaAirCm: Double, C: Double = 0.025, H0: Double = 10.0, n: Double = 1.6): Double =
     round2(C * max(0.0, mukaAirCm - H0).pow(n) * 1000)
 
-  /** Validasi data (Bab 3.4) — daftar galat; kosong = lolos */
+  /** Validasi data (Bab 3.4) — return daftar galat; kosong = lolos */
   fun validasiPembacaan(mukaAirCm: Double?, debitLps: Double?): List<String> {
     val galat = mutableListOf<String>()
     if (debitLps != null && (debitLps < 0 || debitLps > 100000)) galat += "Debit di luar rentang fisik (0–100.000 l/dt)"
@@ -110,21 +110,30 @@ object FaktorKEngine {
     return galat
   }
 
-  /** Jadwal gilir air dasar (Bab 3.5): rotasi per hari, alokasi tidak melebihi kapasitas */
+  /** Jadwal gilir air dasar (Bab 3.5): rotasi per hari, alokasitak melebihi kapasitas */
   data class Golongan(val nama: String, val kebutuhanLps: Double, val prioritas: Int = 1)
   data class Alokasi(val golongan: String, val alokasiLps: Double, val penuh: Boolean)
 
   fun jadwalGilir(qsLps: Double, golongan: List<Golongan>, p: Params = DEFAULT): Map<Int, List<Alokasi>> {
     val kapasitas = round2(qsLps * (1 - p.qhPorsi))
+    require(kapasitas > 0) { "Q_s harus > 0 (l/dt)" }
     val terurut = golongan.sortedWith(compareByDescending<Golongan> { it.prioritas }.thenByDescending { it.kebutuhanLps })
     val hari = mutableMapOf<Int, MutableList<Alokasi>>()
     var idx = 1; var sisa = kapasitas
+    val dayList = mutableListOf<Alokasi>()
+    // Rollover (Bab 3.5): kebutuhan yang tak terakomodasi hari ini digeser ke hari berikut.
     for (g in terurut) {
-      if (sisa <= 0) { idx++; sisa = kapasitas }
-      val alok = min(g.kebutuhanLps, sisa)
-      hari.getOrPut(idx) { mutableListOf() }.add(Alokasi(g.nama, round2(alok), alok >= g.kebutuhanLps))
-      sisa = round2(sisa - alok)
+      var due = round2(g.kebutuhanLps)
+      while (due > 0.005) {
+        if (sisa <= 0.005) { hari[idx] = dayList.toList(); idx++; dayList.clear(); sisa = kapasitas }
+        val alok = min(due, sisa)
+        val sisaDue = round2(due - alok)
+        dayList.add(Alokasi(g.nama, round2(alok), sisaDue <= 1e-9))
+        due = sisaDue
+        sisa = round2(sisa - alok)
+      }
     }
+    if (dayList.isNotEmpty()) hari[idx] = dayList.toList()
     return hari
   }
 

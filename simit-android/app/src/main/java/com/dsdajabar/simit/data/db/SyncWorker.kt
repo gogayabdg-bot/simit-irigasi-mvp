@@ -3,15 +3,17 @@ package com.dsdajabar.simit.data.db
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.dsdajabar.simit.BuildConfig
 import com.dsdajabar.simit.data.entity.Pembacaan
+import kotlinx.coroutines.flow.first
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
 /**
  * Sinkronisasi push (Lampiran B.4): kirim antrean outbox berurutan, satu per permintaan POST,
- * dengan uji idempoten di server. Item yang gagal tetap di antrean; WorkManager
- * mencoba ulang dengan backoff eksponensial.
+ * dengan uji idempoten di server. Draf/terkirim yang gagal tetap di antrean; WorkManager
+ * akan mencoba ulang dengan backoff eksponensial.
  */
 class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
 
@@ -22,7 +24,7 @@ class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorke
 
     var gagal = 0
     for (p in antrean) {
-      dao.ubahStatus(p.id, Pembacaan.STATUS_TERKIRIM) // tandai sebelum kirim
+      dao.ubahStatus(p.id, Pembacaan.STATUS_TERKIRIM) // mark sebelum kirim
       val sukses = kirim(p)
       if (sukses) {
         dao.ubahStatus(p.id, Pembacaan.STATUS_SINKRON)
@@ -35,7 +37,7 @@ class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorke
 
   /**
    * POST ke endpoint blangko (Bab 6.2): POST /api/v1/blangko/dokumen
-   * TODO Fase integrasi: pakai BASE_URL dari buildConfig + OIDC token (Authorization: Bearer ...)
+   * TODO Fase integrasi: gunakan OIDC token (Authorization: Bearer ...):
    */
   private suspend fun kirim(p: Pembacaan): Boolean {
     val url = URL(BASE_URL + "/api/v1/blangko/dokumen")
@@ -65,7 +67,7 @@ class SyncWorker(appContext: Context, params: WorkerParameters) : CoroutineWorke
   }
 
   companion object {
-    // Ganti saat tim backend siap host; default menunjuk ke localhost untuk pengembangan
-    var BASE_URL: String = System.getenv("SIMIT_API_BASE") ?: "http://10.0.2.2:3000"
+    // Endpoint dari BuildConfig (atur via SIMIT_API_BASE di gradle.properties / -P), bukan env device
+    var BASE_URL: String = BuildConfig.SIMIT_API_BASE
   }
 }

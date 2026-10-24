@@ -51,4 +51,8 @@ interface PembacaanDao {
 
   @Query("SELECT COUNT(*) FROM pembacaan")
   suspend fun hitung(): Int
+
+  /** Sumber Q_s paritas qsTersediaUntukDI() web: debit 08-O sinkron (terverifikasi) terbaru pada D.I. */
+  @Query("SELECT debitLps FROM pembacaan WHERE diId = :diId AND kodeBlangko = '08-O' AND status = 'sinkron' AND debitLps IS NOT NULL ORDER BY waktuIso DESC LIMIT 1")
+  suspend fun debit08OTerbaruSinkron(diId: String): Double?
 }

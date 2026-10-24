@@ -23,7 +23,10 @@ class EngineTest {
   }
 
   @Test fun `K sesuai rumus dan ambang kategori`() {
-    val h = FaktorKEngine.hitungFaktorK(1000.0, listOf(Petak("A", 100.0, "padi")))
+    val h = FaktorKEngine.hitungFaktorK(
+      1000.0,
+      listOf(Petak("A", 100.0, "padi")), // tanah default kc=1.0
+    )
     assertEquals(150.0, h.qhLps, 0.01)
     assertEquals(h.kategori.kode, if (h.nilaiK >= 1.0) "melimpah" else if (h.nilaiK >= 0.7) "sedang" else "kritis")
     assertEquals("melimpah", FaktorKEngine.kategoriK(1.5).kode)
@@ -38,12 +41,27 @@ class EngineTest {
   }
 
   @Test fun `jadwal gilir memenuhi kapasitas harian`() {
-    val hari = FaktorKEngine.jadwalGilir(600.0, listOf(Golongan("A", 300.0), Golongan("B", 320.0)))
-    val kapasitas = 600.0 * (1 - FaktorKEngine.DEFAULT.qhPorsi)
+    val hari = FaktorKEngine.jadwalGilir(
+      600.0,
+      listOf(Golongan("A", 300.0), Golongan("B", 320.0)),
+    )
     for ((_, alokasiList) in hari) {
       val total = alokasiList.sumOf { it.alokasiLps }
-      assertTrue(total <= kapasitas + 0.01)
+      assertTrue(total <= FaktorKEngine.DEFAULT.qhPorsi.let { 600.0 * (1 - it) } + 0.01)
     }
+  }
+
+  @Test fun `jadwal gilir menyalurkan kekurangan ke hari berikutnya`() {
+    val hari = FaktorKEngine.jadwalGilir(
+      600.0,
+      listOf(Golongan("A", 300.0), Golongan("B", 320.0)),
+    )
+    val total = mutableMapOf<String, Double>()
+    for ((_, alokasiList) in hari) {
+      for (a in alokasiList) total[a.golongan] = (total[a.golongan] ?: 0.0) + a.alokasiLps
+    }
+    assertTrue("B hanya ${total["B"]} dari 320", Math.abs((total["B"] ?: 0.0) - 320.0) < 0.01)
+    assertTrue("A hanya ${total["A"]} dari 300", Math.abs((total["A"] ?: 0.0) - 300.0) < 0.01)
   }
 
   @Test fun `validasi menolak nilai di luar rentang fisik`() {
