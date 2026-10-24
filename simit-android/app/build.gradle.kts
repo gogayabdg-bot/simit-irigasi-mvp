@@ -15,6 +15,9 @@ android {
     targetSdk = 35
     versionCode = 1
     versionName = "0.1.0" // mengikuti produk SIMIT (Lampiran C.1: 0.x = pra-pilot)
+    // Endpoint API via BuildConfig (bukan System.getenv, yang tak tersedia di device)
+    val simitApiBase = (project.findProperty("SIMIT_API_BASE") as String?) ?: "http://10.0.2.2:3000"
+    buildConfigField("String", "SIMIT_API_BASE", "\"$simitApiBase\"")
   }
 
   buildTypes {
@@ -24,7 +27,7 @@ android {
     }
   }
 
-  buildFeatures { compose = true }
+  buildFeatures { compose = true; buildConfig = true }
   packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
 }
 
@@ -38,7 +41,7 @@ dependencies {
   implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
   implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
 
-  // Room (basis data lokal; produksi -> SQLCipher, Lampiran B.4)
+  // Room (basis data lokal terenkripsi: produksi -> SQLCipher, Lampiran B.4)
   implementation("androidx.room:room-runtime:2.6.1")
   implementation("androidx.room:room-ktx:2.6.1")
   ksp("androidx.room:room-compiler:2.6.1")

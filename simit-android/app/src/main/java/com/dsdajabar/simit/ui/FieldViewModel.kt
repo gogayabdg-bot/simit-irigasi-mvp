@@ -4,8 +4,6 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dsdajabar.simit.data.db.AppDatabase
-import com.dsdajabar.simit.data.db.Seeder
-import com.dsdajabar.simit.data.entity.Pembacaan
 import com.dsdajabar.simit.logic.FaktorKEngine
 import com.dsdajabar.simit.logic.FaktorKEngine.HasilK
 import com.dsdajabar.simit.sync.OutboxRepository
@@ -35,7 +33,7 @@ class FieldViewModel(app: Application) : AndroidViewModel(app) {
 
   init {
     viewModelScope.launch {
-      Seeder.seed(db)
+      com.dsdajabar.simit.data.db.Seeder.seed(db)
       repo.jadwalkanSinkronPeriodik()
     }
     viewModelScope.launch {
@@ -45,10 +43,11 @@ class FieldViewModel(app: Application) : AndroidViewModel(app) {
           _diTerpilih.value = di.id
           val petak = db.masterDao().petakDi(di.id)
           val intake = db.masterDao().semuaBangunan().firstOrNull { it.diId == di.id && it.jenis == "bendung" }
-          val qs = intake?.kapasitasM3s?.let { it * 1000.0 } ?: return@collect
-          _hasilK.value = runCatching {
-            FaktorKEngine.hitungFaktorK(qs, petak.map { FaktorKEngine.Petak(it.nama, it.luasHa, it.komoditas, it.kc, it.ft) })
-          }.getOrNull()
+          // Paritas qsTersediaUntukDI (web): primakan 08-O sinkron; fallback kapasitas intake.
+          val qs = db.pembacaanDao().debit08OTerbaruSinkron(di.id)
+            ?: intake?.kapasitasM3s?.let { it * 1000.0 }
+            ?: return@collect
+          _hasilK.value = runCatching { FaktorKEngine.hitungFaktorK(qs, petak.map { FaktorKEngine.Petak(it.nama, it.luasHa, it.komoditas, it.kc, it.ft) }) }.getOrNull()
         }
     }
   }
@@ -73,14 +72,6 @@ class FieldViewModel(app: Application) : AndroidViewModel(app) {
         catatan = catatan, hujanMm = hujan,
       )
       selesai(r)
-    }
-  }
-
-  /** Tandai terkirim (untuk alur verifikasi ringan Pengamat di lapangan, B.2) */
-  fun tandaiTerkirim(p: Pembacaan) {
-    viewModelScope.launch {
-      db.pembacaanDao().ubahStatus(p.id, Pembacaan.STATUS_TERKIRIM)
-      repo.jadwalkanSinkron()
     }
   }
 }

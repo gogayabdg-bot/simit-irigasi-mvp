@@ -20,7 +20,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -40,13 +39,22 @@ private val green = Color(0xFF16A34A)
 private val abu = Color(0xFF6B7280)
 private val kertas = Color(0xFFF9FAFB)
 
-@Composable
+androidx.compose.runtime.Composable
 fun FieldApp(vm: FieldViewModel) {
   var tab by remember { mutableIntStateOf(0) }
   MaterialTheme {
-    Column(Modifier.fillMaxSize().background(kertas)) {
+    Column(
+      Modifier
+        .fillMaxSize()
+        .background(kertas),
+    ) {
       // Header brand (kontras tinggi untuk cahaya terik, Bab 7.2)
-      Column(Modifier.fillMaxWidth().background(brand).padding(16.dp)) {
+      Column(
+        Modifier
+          .fillMaxWidth()
+          .background(brand)
+          .padding(16.dp),
+      ) {
         Text("SIMIT Lapangan", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         Text("Blangko 04-O · 06-O · 08-O · Hujan", color = Color(0xFFD1FAE5), fontSize = 13.sp)
       }
@@ -59,7 +67,7 @@ fun FieldApp(vm: FieldViewModel) {
   }
 }
 
-@Composable
+androidx.compose.runtime.Composable
 private fun FormLapangan(vm: FieldViewModel) {
   val daftar by vm.daftarDi.collectAsState()
   var kode by remember { mutableStateOf("08-O") }
@@ -72,7 +80,10 @@ private fun FormLapangan(vm: FieldViewModel) {
   var pesan by remember { mutableStateOf("") }
 
   Column(
-    Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
+    Modifier
+      .fillMaxWidth()
+      .verticalScroll(rememberScrollState())
+      .padding(16.dp),
     verticalArrangement = Arrangement.spacedBy(10.dp),
   ) {
     // Blangko
@@ -109,7 +120,7 @@ private fun FormLapangan(vm: FieldViewModel) {
     OutlinedTextField(
       value = bangunanId,
       onValueChange = { bangunanId = it },
-      label = { Text("ID bangunan — BND-001 dst. (pintu/bendung di tugas)") },
+      label = { Text("ID bangunan — BND-001 dst. (pintu/bendum di tugas) ") },
       modifier = Modifier.fillMaxWidth(),
     )
     OutlinedTextField(
@@ -157,7 +168,9 @@ private fun FormLapangan(vm: FieldViewModel) {
           )
         }
       },
-      modifier = Modifier.fillMaxWidth().height(52.dp),
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(52.dp),
     ) { Text("Simpan (draf → antre kirim)", fontSize = 16.sp) }
 
     if (pesan.isNotBlank()) Text(pesan, fontSize = 13.sp, color = abu)
@@ -169,7 +182,7 @@ private fun FormLapangan(vm: FieldViewModel) {
   }
 }
 
-@Composable
+androidx.compose.runtime.Composable
 private fun Dashboard(vm: FieldViewModel) {
   val di by vm.daftarDi.collectAsState()
   val hasil by vm.hasilK.collectAsState()
@@ -177,7 +190,10 @@ private fun Dashboard(vm: FieldViewModel) {
   val diId by vm.diIdTerpilih.collectAsState()
 
   Column(
-    Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
+    Modifier
+      .fillMaxWidth()
+      .verticalScroll(rememberScrollState())
+      .padding(16.dp),
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     // Kartu Faktor-K (draf 09-O, Bab 3.5)
@@ -194,7 +210,7 @@ private fun Dashboard(vm: FieldViewModel) {
           Text("${h.kategori.label} — ${h.kategori.rekomendasi}", fontSize = 12.sp)
           Spacer(Modifier.height(8.dp))
           Text(
-            "Qs ${h.qsLps} · Qh ${h.qhLps} · Tersedia ${h.qtersediaLps} · Butuh ${h.qbutuhTotalLps} (l/dt)",
+            "Qs ${h.qsLps} · Qh ${h.qhLps} · Tersedia ${h.qTersediaLps} · Butuh ${h.qbutuhTotalLps} (l/dt)",
             fontSize = 12.sp, color = abu,
           )
         }
@@ -228,7 +244,7 @@ private fun Dashboard(vm: FieldViewModel) {
               fontSize = 11.sp, color = abu,
             )
           }
-          Text(p.status, fontSize = 11.sp, color = Color.White)
+          Text(p.status, fontSize = 11.sp, color = warnaStatus(p.status))
         }
       }
     }
@@ -241,4 +257,10 @@ private fun warnaKategori(k: String): Color = when (k) {
   "melimpah" -> green
   "sedang" -> amber
   else -> Color(0xFFDC2626)
+}
+
+private fun warnaStatus(s: String): Color = when (s) {
+  "draf" -> abu
+  "terkirim" -> amber
+  else -> green // sinkron
 }
