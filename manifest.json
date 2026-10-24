@@ -1,0 +1,12 @@
+{
+  "name": "SIMIT — Irigasi Terpadu Jabar",
+  "short_name": "SIMIT",
+  "description": "MVP Sistem Informasi Irigasi Terpadu DSDA Jawa Barat (blangko O&P + Faktor-K)",
+  "start_url": "./lapangan.html",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#065f46",
+  "theme_color": "#065f46",
+  "lang": "id",
+  "icons": []
+}
