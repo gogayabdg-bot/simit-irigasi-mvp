@@ -6,7 +6,7 @@ export const PARAMS = {
   perkolasi_mm_hari: 3,     // P
   wlr_mm_hari: 60,          // penggantian lapisan air
   eto_mm_hari: 4.5,         // evapotranspirasi acuan (Penman-Monteith FAO, default stasiun)
-  qh_posi: 0.15,           // Q_h = 15% dari Q_s (kehilangan saluran primer-sekunder)
+  qh_porsi: 0.15,           // Q_h = 15% dari Q_s (kehilangan saluran primer-sekunder)
   kc_default: 1.0,          // koefisien tanaman default
   re_hujan_efektif: 1.5,    // hujan efektif mm/hari
   ft_default: 1.3,          // faktor tersier (1,25–1,43)
