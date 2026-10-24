@@ -80,15 +80,22 @@ export function debitDariMukaAir(muka_air_cm, lengkung = { C: 0.025, H0: 10, n: 
 // Jadwal gilir air dasar (Bab 3.5): rotasi per hari, alokasi tidak melebihi kapasitas
 export function jadwalGilir({ qs_lps, golongan }) {
   const kapasitas = r2(qs_lps * (1 - PARAMS.qh_porsi));
+  if (!(kapasitas > 0)) throw new RangeError("Q_s harus > 0 (l/dt)");
   const terurut = golongan
     .map((g) => ({ nama: g.nama, kebutuhan_lps: g.kebutuhan_lps, prioritas: g.prioritas ?? 1 }))
     .sort((a, b) => b.prioritas - a.prioritas || b.kebutuhan_lps - a.kebutuhan_lps);
   const hari = {}; let hariIdx = 1; let sisa = kapasitas; let dayList = [];
+  // Rollover (Bab 3.5): kebutuhan yang tak terakomodasi hari ini digeser ke hari berikut.
   for (const g of terurut) {
-    if (sisa <= 0) { hari[`hari-${hariIdx}`] = dayList; hariIdx++; dayList = []; sisa = kapasitas; }
-    const alok = Math.min(g.kebutuhan_lps, sisa);
-    dayList.push({ golongan: g.nama, alokasi_lps: r2(alok), penuh: alok >= g.kebutuhan_lps });
-    sisa = r2(sisa - alok);
+    let due = r2(g.kebutuhan_lps);
+    while (due > 0.005) {
+      if (sisa <= 0.005) { hari[`hari-${hariIdx}`] = dayList; hariIdx++; dayList = []; sisa = kapasitas; }
+      const alok = Math.min(due, sisa);
+      const sisaDue = r2(due - alok);
+      dayList.push({ golongan: g.nama, alokasi_lps: r2(alok), penuh: sisaDue <= 1e-9 });
+      due = sisaDue;
+      sisa = r2(sisa - alok);
+    }
   }
   if (dayList.length) hari[`hari-${hariIdx}`] = dayList;
   return { kapasitas_harian_lps: kapasitas, hari };
